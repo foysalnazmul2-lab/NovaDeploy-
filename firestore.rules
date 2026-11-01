@@ -1,0 +1,186 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.email == "foysalnazmul2@gmail.com" && request.auth.token.email_verified == true) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidOptionalString(data, field, maxLen) {
+      return !(field in data) || (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) &&
+             data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'role', 'walletAddress', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             isValidString(data.email, 3, 254) &&
+             data.role in ['user', 'admin'] &&
+             isValidString(data.createdAt, 1, 64) &&
+             isValidOptionalString(data, 'displayName', 120) &&
+             isValidOptionalString(data, 'photoURL', 1024) &&
+             isValidOptionalString(data, 'walletAddress', 128);
+    }
+
+    function isValidDeploymentRecord(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'category', 'name', 'symbolOrSlug', 'status', 'feeUsd', 'platformMarginUsd', 'createdAt']) &&
+             data.keys().hasOnly(['id', 'ownerUid', 'category', 'name', 'symbolOrSlug', 'network', 'cloudRegion', 'supplyOrScale', 'recipientOrOwner', 'durationDays', 'decimals', 'status', 'txHash', 'contractAddress', 'liveUrl', 'feeUsd', 'platformMarginUsd', 'createdAt']) &&
+             isValidString(data.id, 1, 128) &&
+             data.ownerUid == request.auth.uid &&
+             data.category in ['contract', 'cloud_app', 'database'] &&
+             isValidString(data.name, 1, 120) &&
+             isValidString(data.symbolOrSlug, 1, 40) &&
+             data.status in ['draft', 'compiling', 'pending_payment', 'deploying', 'live', 'failed'] &&
+             data.feeUsd is number && data.feeUsd >= 0 && data.feeUsd <= 1000000 &&
+             data.platformMarginUsd is number && data.platformMarginUsd >= 0 && data.platformMarginUsd <= 1000000 &&
+             isValidString(data.createdAt, 1, 64) &&
+             isValidOptionalString(data, 'network', 40) &&
+             isValidOptionalString(data, 'cloudRegion', 40) &&
+             isValidOptionalString(data, 'supplyOrScale', 64) &&
+             isValidOptionalString(data, 'recipientOrOwner', 128) &&
+             isValidOptionalString(data, 'txHash', 160) &&
+             isValidOptionalString(data, 'contractAddress', 128) &&
+             isValidOptionalString(data, 'liveUrl', 256);
+    }
+
+    function isValidTransactionRecord(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'timestamp', 'customerWallet', 'itemName', 'category', 'network', 'totalPaidUsd', 'ownerProfitUsd', 'txHash']) &&
+             data.keys().hasOnly(['id', 'ownerUid', 'timestamp', 'customerWallet', 'itemName', 'category', 'network', 'totalPaidUsd', 'ownerProfitUsd', 'txHash']) &&
+             isValidString(data.id, 1, 128) &&
+             data.ownerUid == request.auth.uid &&
+             isValidString(data.timestamp, 1, 64) &&
+             isValidString(data.customerWallet, 1, 128) &&
+             isValidString(data.itemName, 1, 140) &&
+             data.category in ['contract', 'cloud_app', 'database'] &&
+             isValidString(data.network, 1, 64) &&
+             data.totalPaidUsd is number && data.totalPaidUsd >= 0 && data.totalPaidUsd <= 1000000 &&
+             data.ownerProfitUsd is number && data.ownerProfitUsd >= 0 && data.ownerProfitUsd <= 1000000 &&
+             isValidString(data.txHash, 1, 160);
+    }
+
+    function isValidWalletTokenRecord(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'name', 'symbol', 'balance', 'decimals', 'network', 'contractAddress']) &&
+             data.keys().hasOnly(['id', 'ownerUid', 'name', 'symbol', 'balance', 'decimals', 'network', 'contractAddress', 'iconBg']) &&
+             isValidString(data.id, 1, 128) &&
+             data.ownerUid == request.auth.uid &&
+             isValidString(data.name, 1, 120) &&
+             isValidString(data.symbol, 1, 32) &&
+             data.balance is number && data.balance >= 0 &&
+             data.decimals is number && data.decimals >= 0 && data.decimals <= 36 &&
+             isValidString(data.network, 1, 40) &&
+             isValidString(data.contractAddress, 1, 128) &&
+             isValidOptionalString(data, 'iconBg', 64);
+    }
+
+    function isValidBioTargetRecord(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'uniprotAccession', 'geneSymbol', 'proteinName', 'organismName', 'sequenceLength', 'meanPlddt', 'confidenceTier', 'pdbCount', 'tokenSymbol', 'contractAddress', 'createdAt']) &&
+             data.keys().hasOnly(['id', 'ownerUid', 'uniprotAccession', 'geneSymbol', 'proteinName', 'organismName', 'sequenceLength', 'meanPlddt', 'confidenceTier', 'pdbCount', 'tokenSymbol', 'contractAddress', 'createdAt']) &&
+             isValidString(data.id, 1, 128) &&
+             data.ownerUid == request.auth.uid &&
+             isValidString(data.uniprotAccession, 1, 32) &&
+             isValidString(data.geneSymbol, 1, 32) &&
+             isValidString(data.proteinName, 1, 240) &&
+             isValidString(data.organismName, 1, 160) &&
+             data.sequenceLength is number && data.sequenceLength >= 1 && data.sequenceLength <= 100000 &&
+             data.meanPlddt is number && data.meanPlddt >= 0 && data.meanPlddt <= 100 &&
+             data.confidenceTier in ['Very High', 'Confident', 'Low', 'Very Low'] &&
+             data.pdbCount is number && data.pdbCount >= 0 &&
+             isValidString(data.tokenSymbol, 1, 24) &&
+             isValidString(data.contractAddress, 1, 128) &&
+             isValidString(data.createdAt, 1, 64);
+    }
+
+    function isValidGameRunScore(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'playerName', 'score', 'waveReached', 'enemiesNeutralized', 'bioCoresProtected', 'createdAt']) &&
+             data.keys().hasOnly(['id', 'ownerUid', 'playerName', 'score', 'waveReached', 'enemiesNeutralized', 'bioCoresProtected', 'createdAt']) &&
+             isValidString(data.id, 1, 128) &&
+             data.ownerUid == request.auth.uid &&
+             isValidString(data.playerName, 1, 80) &&
+             data.score is number && data.score >= 0 && data.score <= 100000000 &&
+             data.waveReached is number && data.waveReached >= 1 && data.waveReached <= 1000 &&
+             data.enemiesNeutralized is number && data.enemiesNeutralized >= 0 && data.enemiesNeutralized <= 100000 &&
+             data.bioCoresProtected is number && data.bioCoresProtected >= 0 && data.bioCoresProtected <= 100 &&
+             isValidString(data.createdAt, 1, 64);
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data) && (request.resource.data.role == 'user' || isAdmin());
+      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data) &&
+                    request.resource.data.uid == resource.data.uid &&
+                    request.resource.data.createdAt == resource.data.createdAt &&
+                    (request.resource.data.role == resource.data.role || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /deployments/{deploymentId} {
+      allow read: if isAuthenticated() && (resource.data.ownerUid == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidDeploymentRecord(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.ownerUid == request.auth.uid &&
+                    request.resource.data.ownerUid == resource.data.ownerUid &&
+                    request.resource.data.createdAt == resource.data.createdAt &&
+                    isValidDeploymentRecord(request.resource.data);
+      allow delete: if isAuthenticated() && (resource.data.ownerUid == request.auth.uid || isAdmin());
+    }
+
+    match /transactions/{transactionId} {
+      allow read: if isAuthenticated() && (resource.data.ownerUid == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidTransactionRecord(request.resource.data);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    match /walletTokens/{tokenId} {
+      allow read: if isAuthenticated() && (resource.data.ownerUid == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidWalletTokenRecord(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.ownerUid == request.auth.uid &&
+                    request.resource.data.ownerUid == resource.data.ownerUid &&
+                    isValidWalletTokenRecord(request.resource.data);
+      allow delete: if isAuthenticated() && (resource.data.ownerUid == request.auth.uid || isAdmin());
+    }
+
+    match /bioTargets/{targetId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidBioTargetRecord(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.ownerUid == request.auth.uid &&
+                    request.resource.data.ownerUid == resource.data.ownerUid &&
+                    request.resource.data.createdAt == resource.data.createdAt &&
+                    isValidBioTargetRecord(request.resource.data);
+      allow delete: if isAuthenticated() && (resource.data.ownerUid == request.auth.uid || isAdmin());
+    }
+
+    match /gameScores/{scoreId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidGameRunScore(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.ownerUid == request.auth.uid &&
+                    request.resource.data.ownerUid == resource.data.ownerUid &&
+                    request.resource.data.createdAt == resource.data.createdAt &&
+                    isValidGameRunScore(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

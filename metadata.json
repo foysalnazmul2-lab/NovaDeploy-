@@ -1,0 +1,6 @@
+{
+  "name": "NovaDeploy - Cloud & Smart Contract Deployment Platform",
+  "description": "Deploy web applications, Docker containers, microservices, and audited smart contracts to global multi-cloud and blockchain networks in seconds with automated CI/CD and developer billing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,141 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user account and Web3/DeSci profile.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "displayName": { "type": "string", "description": "Display name" },
+        "photoURL": { "type": "string", "description": "Avatar URL" },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "Platform role" },
+        "walletAddress": { "type": "string", "description": "Connected Web3 wallet address" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of creation" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "DeploymentRecord": {
+      "title": "DeploymentRecord",
+      "description": "Smart contract or multi-cloud deployment record persisted in Firestore.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Deployment unique ID" },
+        "ownerUid": { "type": "string", "description": "UID of the user who deployed" },
+        "category": { "type": "string", "enum": ["contract", "cloud_app", "database"], "description": "Deployment category" },
+        "name": { "type": "string", "description": "Token or service name" },
+        "symbolOrSlug": { "type": "string", "description": "Ticker symbol or slug" },
+        "network": { "type": "string", "description": "Blockchain network or cloud region" },
+        "supplyOrScale": { "type": "string", "description": "Token supply or compute scale" },
+        "recipientOrOwner": { "type": "string", "description": "Recipient wallet or owner identifier" },
+        "durationDays": { "type": "number", "description": "Configured duration in days" },
+        "decimals": { "type": "number", "description": "Token decimals" },
+        "status": { "type": "string", "enum": ["draft", "compiling", "pending_payment", "deploying", "live", "failed"], "description": "Deployment lifecycle status" },
+        "txHash": { "type": "string", "description": "On-chain transaction hash" },
+        "contractAddress": { "type": "string", "description": "Deployed smart contract address" },
+        "liveUrl": { "type": "string", "description": "Live application endpoint URL" },
+        "feeUsd": { "type": "number", "description": "Total deployment fee in USD" },
+        "platformMarginUsd": { "type": "number", "description": "Owner profit margin in USD" },
+        "createdAt": { "type": "string", "description": "ISO creation timestamp" }
+      },
+      "required": ["id", "ownerUid", "category", "name", "symbolOrSlug", "status", "feeUsd", "platformMarginUsd", "createdAt"]
+    },
+    "TransactionRecord": {
+      "title": "TransactionRecord",
+      "description": "Platform ledger transaction record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Transaction ID" },
+        "ownerUid": { "type": "string", "description": "UID of creator" },
+        "timestamp": { "type": "string", "description": "Human-readable or ISO timestamp" },
+        "customerWallet": { "type": "string", "description": "Customer wallet address" },
+        "itemName": { "type": "string", "description": "Deployed item name" },
+        "category": { "type": "string", "enum": ["contract", "cloud_app", "database"], "description": "Category" },
+        "network": { "type": "string", "description": "Target network" },
+        "totalPaidUsd": { "type": "number", "description": "Total amount paid in USD" },
+        "ownerProfitUsd": { "type": "number", "description": "Platform owner profit in USD" },
+        "txHash": { "type": "string", "description": "Transaction hash" }
+      },
+      "required": ["id", "ownerUid", "timestamp", "customerWallet", "itemName", "category", "network", "totalPaidUsd", "ownerProfitUsd", "txHash"]
+    },
+    "WalletTokenRecord": {
+      "title": "WalletTokenRecord",
+      "description": "Minted or imported Web3 token asset held by a user.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Token asset ID" },
+        "ownerUid": { "type": "string", "description": "UID of holder" },
+        "name": { "type": "string", "description": "Token name" },
+        "symbol": { "type": "string", "description": "Token symbol" },
+        "balance": { "type": "number", "description": "Token balance" },
+        "decimals": { "type": "number", "description": "Token decimals" },
+        "network": { "type": "string", "description": "Blockchain network" },
+        "contractAddress": { "type": "string", "description": "Smart contract address" }
+      },
+      "required": ["id", "ownerUid", "name", "symbol", "balance", "decimals", "network", "contractAddress"]
+    },
+    "BioTargetRecord": {
+      "title": "BioTargetRecord",
+      "description": "Verified AlphaFold / UniProt / PDB structural biology asset registered for DeSci IP tokenization.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Record ID" },
+        "ownerUid": { "type": "string", "description": "Creator UID" },
+        "uniprotAccession": { "type": "string", "description": "UniProtKB primary accession (e.g. P04637)" },
+        "geneSymbol": { "type": "string", "description": "HGNC gene symbol (e.g. TP53)" },
+        "proteinName": { "type": "string", "description": "Recommended protein name" },
+        "organismName": { "type": "string", "description": "Source organism scientific name" },
+        "sequenceLength": { "type": "number", "description": "Amino acid length" },
+        "meanPlddt": { "type": "number", "description": "AlphaFold global mean pLDDT score (0-100)" },
+        "confidenceTier": { "type": "string", "enum": ["Very High", "Confident", "Low", "Very Low"], "description": "AlphaFold confidence classification" },
+        "pdbCount": { "type": "number", "description": "Cross-referenced experimental PDB entries count" },
+        "tokenSymbol": { "type": "string", "description": "Associated DeSci IP token symbol" },
+        "contractAddress": { "type": "string", "description": "Deployed IP-NFT / ERC-20 address" },
+        "createdAt": { "type": "string", "description": "ISO timestamp" }
+      },
+      "required": ["id", "ownerUid", "uniprotAccession", "geneSymbol", "proteinName", "organismName", "sequenceLength", "meanPlddt", "confidenceTier", "pdbCount", "tokenSymbol", "contractAddress", "createdAt"]
+    },
+    "GameRunScore": {
+      "title": "GameRunScore",
+      "description": "3D Quantum & Bio-Core Defense game run telemetry and leaderboard record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Score record ID" },
+        "ownerUid": { "type": "string", "description": "Player UID" },
+        "playerName": { "type": "string", "description": "Display callsign" },
+        "score": { "type": "number", "description": "Total tactical score" },
+        "waveReached": { "type": "number", "description": "Highest wave reached" },
+        "enemiesNeutralized": { "type": "number", "description": "Total hostiles neutralized" },
+        "bioCoresProtected": { "type": "number", "description": "Remaining integrity percentage" },
+        "createdAt": { "type": "string", "description": "ISO timestamp" }
+      },
+      "required": ["id", "ownerUid", "playerName", "score", "waveReached", "enemiesNeutralized", "bioCoresProtected", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile documents keyed by Auth UID."
+    },
+    "/deployments/{deploymentId}": {
+      "schema": { "$ref": "#/entities/DeploymentRecord" },
+      "description": "Smart contract and cloud deployment records."
+    },
+    "/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/TransactionRecord" },
+      "description": "Platform payment and deployment ledger records."
+    },
+    "/walletTokens/{tokenId}": {
+      "schema": { "$ref": "#/entities/WalletTokenRecord" },
+      "description": "User Web3 wallet token balances."
+    },
+    "/bioTargets/{targetId}": {
+      "schema": { "$ref": "#/entities/BioTargetRecord" },
+      "description": "DeSci AlphaFold/UniProt structural biology IP records."
+    },
+    "/gameScores/{scoreId}": {
+      "schema": { "$ref": "#/entities/GameRunScore" },
+      "description": "3D Cyber-Bio Defense leaderboard scores."
+    }
+  }
+}

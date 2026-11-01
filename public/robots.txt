@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://novadeploy.cc/sitemap.xml
+Host: https://novadeploy.cc
