@@ -1,11 +1,11 @@
-# NovaDeploy — Genuine 30,000-recipient distribution planning
+# NovaDeploy — Genuine 300,000-recipient distribution planning
 
 This branch adds a **planning-only** BNB Smart Chain allocation workspace to the React/Vite dashboard.
 
 ## How to use
 1. Open the allocation workspace below the token creation wizard.
-2. Download the 30,000-row CSV template. Rows contain **empty** wallet addresses; no wallets are generated.
-3. Collect opt-in recipient addresses from people who want to participate. Preserve an auditable consent record.
+2. Download the 300,000-row CSV template. Rows contain **empty** wallet addresses; no wallets are generated.
+3. Collect opt-in recipient addresses from people who want to participate. Preserve an auditable consent record. The NovaDeploy signup CSV imports directly and records claimed opt-ins. The review export still requires signature and eligibility review flags.
 4. Import the CSV. The browser validates EVM address shape, BNB Chain designation, and case-insensitive duplicates.
 5. Enter the total token budget and the actual token decimals. The UI calculates equal token-unit allocations with bigint arithmetic and displays any remainder.
 6. Download a **review-only** allocation CSV. This is **not** an instruction to execute transfers.
@@ -22,7 +22,7 @@ This branch adds a **planning-only** BNB Smart Chain allocation workspace to the
 - Verify wallet control with a nonce-based SIWE-style signature, server-side signature validation, expiration, replay prevention, and chain ID 56.
 - Review duplicates and sybil patterns; do not rely on a CSV's self-reported flags.
 - Snapshot eligible recipients and allocations; publish a cryptographic commitment and allow recipients to review.
-- For large distributions, evaluate an audited claim contract or Merkle distributor rather than 30,000 individually signed transfers.
+- For large distributions, evaluate an audited claim contract or Merkle distributor rather than 300,000 individually signed transfers.
 - Require funding checks, security review, transaction simulation, and explicit wallet approval before deployment or token transfers.
 - Track claims using confirmed BSC events and distinguish **registered**, **eligible**, **claimed**, and **current holders**.
 - Query current holders from an indexed transfer-event pipeline, accounting for zero balances, burns, contracts, and pool addresses. Do not infer current holders from a list of transfers.

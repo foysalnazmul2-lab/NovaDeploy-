@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Download, Upload, Users, AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import {
-  AIRDROP_TARGET_ROWS, analyzeRecipients, formatTokenUnits,
+  AIRDROP_MAX_IMPORT_ROWS, AIRDROP_TARGET_ROWS, analyzeRecipients, formatTokenUnits,
   makeRecipientTemplate, makeReviewCsv, parseRecipientCsv, parseTokenUnits,
   type RecipientRow,
 } from '../utils/airdrop';
@@ -37,7 +37,7 @@ export function AirdropPlanner() {
     setBusy(true);
     setError('');
     try {
-      if (file.size > 30000000) throw new Error('File exceeds the 30 MB import limit.');
+      if (file.size > 64 * 1024 * 1024) throw new Error('File exceeds the 64 MiB import limit.');
       const parsed = parseRecipientCsv(await file.text());
       setRows(parsed);
       setFileName(file.name);
@@ -57,15 +57,15 @@ export function AirdropPlanner() {
           <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold uppercase tracking-widest">
             <Users className="w-4 h-4" /> Genuine community distribution
           </div>
-          <h2 className="mt-2 text-2xl font-bold text-white">30,000-recipient allocation workspace</h2>
+          <h2 className="mt-2 text-2xl font-bold text-white">300,000-recipient allocation workspace</h2>
           <p className="text-sm text-slate-400 mt-2 max-w-3xl">
-            Download an empty 30,000-row template and import genuine opt-in BNB Smart Chain wallets.
+            Download an empty 300,000-row template and import genuine opt-in BNB Smart Chain wallets.
             This workspace only plans allocations. It does not create wallets, send tokens, or increase the on-chain holder count.
           </p>
         </div>
-        <button type="button" onClick={() => downloadText('novadeploy-30000-recipient-template.csv', makeRecipientTemplate())}
+        <button type="button" onClick={() => downloadText('novadeploy-' + AIRDROP_TARGET_ROWS + '-recipient-template.csv', makeRecipientTemplate())}
           className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-400 text-white font-semibold text-sm rounded-xl px-4 py-3">
-          <Download className="w-4 h-4" /> Download 30,000-row CSV
+          <Download className="w-4 h-4" /> Download 300,000-row CSV
         </button>
       </div>
 
@@ -100,7 +100,7 @@ export function AirdropPlanner() {
 
       <label className="flex items-center gap-3 rounded-xl border border-dashed border-slate-600 hover:border-indigo-400 p-5 cursor-pointer text-sm text-slate-200">
         <Upload className="w-5 h-5 text-indigo-300" />
-        <span>{busy ? 'Reading CSV…' : fileName ? 'Loaded: ' + fileName : 'Import opt-in recipient CSV (up to 100,000 rows)'}</span>
+        <span>{busy ? 'Reading CSV…' : fileName ? 'Loaded: ' + fileName : 'Import opt-in recipient CSV (up to ' + AIRDROP_MAX_IMPORT_ROWS.toLocaleString('en-US') + ' rows)'}</span>
         <input type="file" accept=".csv,text/csv" className="sr-only" onChange={e => { void importFile(e.target.files?.[0]); }} />
       </label>
       {error && <p role="alert" className="text-rose-400 text-sm">{error}</p>}
@@ -108,7 +108,7 @@ export function AirdropPlanner() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           ['Planned target', AIRDROP_TARGET_ROWS.toLocaleString()],
-          ['Imported rows', stats.total.toLocaleString()],
+          ['Additional addresses to target', Math.max(0, AIRDROP_TARGET_ROWS - stats.validUnique).toLocaleString()],
           ['Unique valid addresses', stats.validUnique.toLocaleString()],
           ['Provisional eligible', stats.provisionalCount.toLocaleString()],
         ].map(([label, value]) => (
@@ -130,7 +130,7 @@ export function AirdropPlanner() {
         {amount === null ? (
           <p className="text-rose-300 text-sm">Enter a valid amount with no more than {decimals} decimal places.</p>
         ) : per === null ? (
-          <p className="text-slate-400 text-sm">Import approved opt-in recipients to calculate allocations. For a planning example, {tokenAmount || '0'} tokens ÷ 30,000 recipients is {formatTokenUnits(amount / 30000n, decimals)} tokens per recipient.</p>
+          <p className="text-slate-400 text-sm">Import approved opt-in recipients to calculate allocations. For a planning example, {tokenAmount || '0'} tokens ÷ 300,000 recipients is {formatTokenUnits(amount / BigInt(AIRDROP_TARGET_ROWS), decimals)} tokens per recipient.</p>
         ) : (
           <>
             <p className="text-xl font-mono font-bold text-emerald-300">{formatTokenUnits(per, decimals)} tokens per provisional recipient</p>

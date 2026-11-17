@@ -1,6 +1,6 @@
 // CSV planning utilities. A CSV is NOT proof of consent, ownership, or on-chain holders.
-export const AIRDROP_TARGET_ROWS = 30000;
-export const AIRDROP_MAX_IMPORT_ROWS = 100000;
+export const AIRDROP_TARGET_ROWS = 300000;
+export const AIRDROP_MAX_IMPORT_ROWS = AIRDROP_TARGET_ROWS;
 export const AIRDROP_COLUMNS = [
   'recipient_id', 'wallet_address', 'consent_status', 'consent_timestamp_utc',
   'network', 'validation_status', 'signature_status', 'sybil_review_status',
@@ -79,7 +79,7 @@ export function parseRecipientCsv(text: string): RecipientRow[] {
       row.push(cell);
       if (row.some(value => value.trim() !== '')) raw.push(row);
       if (raw.length > AIRDROP_MAX_IMPORT_ROWS + 1) {
-        throw new Error('CSV exceeds the 100,000-row safety limit.');
+        throw new Error(`CSV exceeds the ${AIRDROP_MAX_IMPORT_ROWS.toLocaleString('en-US')}-row limit.`);
       }
       row = [];
       cell = '';
@@ -99,7 +99,7 @@ export function parseRecipientCsv(text: string): RecipientRow[] {
     throw new Error('CSV needs a wallet_address column.');
   }
   if (data.length > AIRDROP_MAX_IMPORT_ROWS) {
-    throw new Error('CSV exceeds the 100,000-row safety limit.');
+    throw new Error(`CSV exceeds the ${AIRDROP_MAX_IMPORT_ROWS.toLocaleString('en-US')}-row limit.`);
   }
   return data.map((cells, index) => {
     const result: RecipientRow = {};
@@ -132,8 +132,8 @@ export function analyzeRecipients(rows: RecipientRow[]): RecipientAnalysis {
     }
     seen.add(normalized);
     validUnique++;
-    const consent = (row.consent_status || '').toLowerCase();
-    const optedIn = ['opted_in', 'granted', 'yes', 'true'].includes(consent);
+    const consent = (row.consent_status || row.consent || '').toLowerCase();
+    const optedIn = ['opted_in', 'granted', 'yes', 'true', '1'].includes(consent);
     const signed = (row.signature_status || '').toLowerCase() === 'verified';
     const reviewed = (row.sybil_review_status || '').toLowerCase() === 'approved';
     if (optedIn) claimedOptedIn++;
