@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Download, Upload, Users, AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import {
   AIRDROP_MAX_IMPORT_ROWS, AIRDROP_TARGET_ROWS, analyzeRecipients, formatTokenUnits,
@@ -26,6 +26,62 @@ export function AirdropPlanner() {
   const [contract, setContract] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [liveCount, setLiveCount] = useState<number | null>(null);
+  const [holderIndexedAt, setHolderIndexedAt] = useState('');
+  const [poolPrice, setPoolPrice] = useState<number | null>(null);
+  const [poolCheckedAt, setPoolCheckedAt] = useState('');
+  const [monitorStatus, setMonitorStatus] = useState('Enter a BNB Chain token contract to monitor blockchain data.');
+  const validContract = /^0x[0-9a-fA-F]{40}$/.test(contract);
+
+  // Hostinger exposes server-side adapters for GeckoTerminal and DEX Screener.
+  // Only blockchain/indexer responses are displayed; the imported CSV never counts as holders.
+  useEffect(() => {
+    setLiveCount(null);
+    setHolderIndexedAt('');
+    setPoolPrice(null);
+    setPoolCheckedAt('');
+    if (!/^0x[0-9a-fA-F]{40}$/.test(contract)) {
+      setMonitorStatus('Enter a valid BNB Chain contract to start live monitoring.');
+      return;
+    }
+    let disposed = false;
+    const token = contract.toLowerCase();
+    const reloadCount = async () => {
+      try {
+        const response = await fetch('/market-tools.php?api=holder-count&token=' + token, { cache: 'no-store' });
+        if (!response.ok) throw new Error('Holder provider unavailable');
+        const data: { count?: unknown; updatedAt?: unknown } = await response.json();
+        if (disposed) return;
+        setLiveCount(typeof data.count === 'number' && Number.isSafeInteger(data.count) && data.count >= 0 ? data.count : null);
+        setHolderIndexedAt(typeof data.updatedAt === 'string' ? data.updatedAt : '');
+        setMonitorStatus('GeckoTerminal indexed holder data. Results may lag behind on-chain transfers.');
+      } catch {
+        if (!disposed) setMonitorStatus('Holder index unavailable on this host. Open the live Hostinger checker below.');
+      }
+    };
+    const reloadMarket = async () => {
+      try {
+        const response = await fetch('/market-tools.php?api=market&token=' + token, { cache: 'no-store' });
+        if (!response.ok) throw new Error('Market provider unavailable');
+        const data: { pools?: { price?: unknown; liquidity?: unknown }[]; checkedAt?: unknown } = await response.json();
+        if (disposed) return;
+        const best = Array.isArray(data.pools) ? data.pools[0] : undefined;
+        setPoolPrice(typeof best?.price === 'number' && Number.isFinite(best.price) && best.price > 0 ? best.price : null);
+        setPoolCheckedAt(typeof data.checkedAt === 'string' ? data.checkedAt : '');
+      } catch {
+        if (!disposed) { setPoolPrice(null); setPoolCheckedAt(''); }
+      }
+    };
+    void reloadCount();
+    void reloadMarket();
+    const holderTimer = window.setInterval(() => { if (!document.hidden) void reloadCount(); }, 180000);
+    const marketTimer = window.setInterval(() => { if (!document.hidden) void reloadMarket(); }, 60000);
+    return () => {
+      disposed = true;
+      window.clearInterval(holderTimer);
+      window.clearInterval(marketTimer);
+    };
+  }, [contract]);
   const stats = useMemo(() => analyzeRecipients(rows), [rows]);
   const amount = useMemo(() => parseTokenUnits(tokenAmount, decimals), [tokenAmount, decimals]);
   const divisor = BigInt(stats.provisionalCount);
@@ -96,6 +152,83 @@ export function AirdropPlanner() {
             onChange={e => setDecimals(Number(e.target.value))}
             className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 font-mono text-sm text-white" />
         </label>
+      </div>
+
+      <div className="rounded-2xl border border-cyan-500/30 bg-cyan-950/20 p-5 space-y-3" aria-live="polite">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h3 className="font-bold text-white text-base">Live BNB Chain monitor</h3>
+          <span className="text-xs text-cyan-200">Holder index: 3 min · DEX pools: 1 min while page is open</span>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="rounded-lg bg-slate-950 p-3">
+            <div className="text-xs text-slate-400">Indexed token holders (not CSV recipients)</div>
+            <div className="text-xl font-mono text-white font-bold">{liveCount === null ? 'Unavailable' : liveCount.toLocaleString('en-US')}</div>
+            <div className="text-xs text-slate-400">{holderIndexedAt ? 'Source updated: ' + new Date(holderIndexedAt).toLocaleString() : 'No index timestamp available'}</div>
+          </div>
+          <div className="rounded-lg bg-slate-950 p-3">
+            <div className="text-xs text-slate-400">Highest-liquidity pool USD price</div>
+            <div className="text-xl font-mono text-white font-bold">{poolPrice === null ? 'No indexed quote' : '
+        <Upload className="w-5 h-5 text-indigo-300" />
+        <span>{busy ? 'Reading CSV…' : fileName ? 'Loaded: ' + fileName : 'Import opt-in recipient CSV (up to ' + AIRDROP_MAX_IMPORT_ROWS.toLocaleString('en-US') + ' rows)'}</span>
+        <input type="file" accept=".csv,text/csv" className="sr-only" onChange={e => { void importFile(e.target.files?.[0]); }} />
+      </label>
+      {error && <p role="alert" className="text-rose-400 text-sm">{error}</p>}
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          ['Planned target', AIRDROP_TARGET_ROWS.toLocaleString()],
+          ['Additional addresses to target', Math.max(0, AIRDROP_TARGET_ROWS - stats.validUnique).toLocaleString()],
+          ['Unique valid addresses', stats.validUnique.toLocaleString()],
+          ['Provisional eligible', stats.provisionalCount.toLocaleString()],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-xl border border-slate-700 bg-slate-950/80 p-4">
+            <div className="text-xs text-slate-400">{label}</div>
+            <div className="text-xl text-white font-bold font-mono mt-1">{value}</div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs text-slate-400">
+        <span>Invalid / empty: <strong className="text-rose-300">{stats.invalid}</strong></span>
+        <span>Duplicates: <strong className="text-amber-300">{stats.duplicates}</strong></span>
+        <span>Claimed opt-ins: <strong className="text-slate-200">{stats.claimedOptedIn}</strong></span>
+        <span>Claimed verified signatures: <strong className="text-slate-200">{stats.claimedSigned}</strong></span>
+      </div>
+
+      <div className="rounded-xl border border-slate-700 bg-slate-950/70 p-5 space-y-2">
+        <h3 className="text-sm font-semibold text-white">Equal allocation preview</h3>
+        {amount === null ? (
+          <p className="text-rose-300 text-sm">Enter a valid amount with no more than {decimals} decimal places.</p>
+        ) : per === null ? (
+          <p className="text-slate-400 text-sm">Import approved opt-in recipients to calculate allocations. For a planning example, {tokenAmount || '0'} tokens ÷ 300,000 recipients is {formatTokenUnits(amount / BigInt(AIRDROP_TARGET_ROWS), decimals)} tokens per recipient.</p>
+        ) : (
+          <>
+            <p className="text-xl font-mono font-bold text-emerald-300">{formatTokenUnits(per, decimals)} tokens per provisional recipient</p>
+            <p className="text-xs text-slate-400">Remainder: {formatTokenUnits(remainder!, decimals)} tokens. Export is a review-only preview; it is not a transaction or verified eligibility list.</p>
+          </>
+        )}
+        <div className="flex flex-wrap gap-3 pt-3">
+          <button type="button" disabled={per === null || per === 0n}
+            onClick={() => { if (per !== null) downloadText('novadeploy-allocation-review.csv', makeReviewCsv(stats.provisionalRows, per, decimals)); }}
+            className="disabled:opacity-40 flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm text-white font-semibold">
+            <FileSpreadsheet className="w-4 h-4" /> Export review-only allocation CSV
+          </button>
+          {/^0x[0-9a-fA-F]{40}$/.test(contract) && (
+            <a href={'https://bscscan.com/token/' + contract} target="_blank" rel="noopener noreferrer"
+              className="px-4 py-2.5 rounded-lg border border-slate-600 text-sm text-slate-200 hover:bg-slate-800">
+              View actual token holders on BscScan
+            </a>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+ + poolPrice.toPrecision(8)}</div>
+            <div className="text-xs text-slate-400">{poolCheckedAt ? 'Checked: ' + new Date(poolCheckedAt).toLocaleString() : 'No pool timestamp available'}</div>
+          </div>
+        </div>
+        <p className="text-xs text-slate-300">{monitorStatus} Counts come from GeckoTerminal; pools come from DEX Screener. Neither figure is guaranteed to be real-time or a transferable token value.</p>
+        {validContract && <a href={'https://novadeploy.cc/market-tools.php?token=' + encodeURIComponent(contract)} target="_blank" rel="noopener noreferrer" className="inline-block text-sm text-cyan-300 underline">Open the live wallet-balance and holder checker</a>}
       </div>
 
       <label className="flex items-center gap-3 rounded-xl border border-dashed border-slate-600 hover:border-indigo-400 p-5 cursor-pointer text-sm text-slate-200">
