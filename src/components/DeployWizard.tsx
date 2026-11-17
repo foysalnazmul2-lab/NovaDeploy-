@@ -343,6 +343,12 @@ export function DeployWizard({
     setForkTransferTax(0);
   };
 
+  const handleNetworkChange = (network: BlockchainNetwork) => {
+    setSelectedNetwork(network);
+    setCustomDecimals(null);
+    setAddressError(null);
+  };
+
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!tokenName.trim()) return;
@@ -932,10 +938,7 @@ export function DeployWizard({
                       key={net.id}
                       type="button"
                       data-testid={`network-select-${net.id}`}
-                      onClick={() => {
-                        setSelectedNetwork(net.id);
-                        setCustomDecimals(null);
-                      }}
+                      onClick={() => handleNetworkChange(net.id)}
                       className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden group cursor-pointer ${
                         isSelected
                           ? 'bg-indigo-600/15 border-indigo-500 ring-2 ring-indigo-500/30'

@@ -1,3 +1,5 @@
+import type { BlockchainNetwork, GasPriorityTier } from '../types';
+
 /**
  * Pure calculation and validation logic for NovaDeploy
  */
@@ -3574,7 +3576,7 @@ export interface EtherscanVerificationSimulationReport {
  * verification status pipeline inspection.
  */
 export function simulateEtherscanVerificationPipeline(
-  params: FlattenedContractParams & { flattenRunSequence?: number }
+  params: Parameters<typeof generateFlattenedSolidityContract>[0] & { flattenRunSequence?: number }
 ): EtherscanVerificationSimulationReport {
   const bundle = generateFlattenedSolidityContract(params);
   const net = (params.network || 'ethereum').toLowerCase();

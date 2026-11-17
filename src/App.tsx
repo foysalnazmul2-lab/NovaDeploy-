@@ -6,6 +6,7 @@ import {
   Play,
 } from 'lucide-react';
 import { TickerBar } from './components/TickerBar';
+import { AirdropPlanner } from './components/AirdropPlanner';
 import { Header } from './components/Header';
 import { DeployWizard } from './components/DeployWizard';
 import { TerminalCompiler } from './components/TerminalCompiler';
@@ -922,6 +923,9 @@ export default function App() {
                 walletAddress={walletAddress}
                 onStartCompilation={handleStartCompilation}
               />
+
+              {/* Genuine opt-in distribution planning. No artificial holders or automatic transfers. */}
+              <AirdropPlanner />
 
               {/* 4 Feature Highlights (Instant Deploy, Multi-Chain, Audited, Low Fees) */}
               <FeaturesAndHighlights />
